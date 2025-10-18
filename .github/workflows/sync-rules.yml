@@ -1,9 +1,12 @@
-name: Sync Surge Rules
+name: Sync Rules
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每天 UTC 0 点（北京时间早上 8 点）
-  workflow_dispatch:      # 允许手动触发
+    - cron: '0 0 * * *'  # 每天 UTC 0 点运行（北京时间早上 8 点）
+  workflow_dispatch:      # 支持手动触发
+
+permissions:
+  contents: write   # ✅ 允许 GitHub Actions 推送修改到仓库
 
 jobs:
   sync:
@@ -23,6 +26,7 @@ jobs:
           mkdir -p rules
           cd rules
           echo "🌀 Fetching rules..."
+
           # 广告拦截
           curl -O https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Surge-RULE-SET.list
           # 智能助理
@@ -51,7 +55,7 @@ jobs:
           curl -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Proxy/Proxy_All_No_Resolve.list
           curl -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/ChinaMax/ChinaMax_All.list
 
-          # 可选：合并为一个总文件，方便 Surge 引用
+          # ✅ 可选：合并为一个总文件
           echo "🧩 Merging all rules..."
           cat *.list > ../merged_rules.list
           echo "# Auto merged on $(date '+%Y-%m-%d %H:%M:%S')" >> ../merged_rules.list
