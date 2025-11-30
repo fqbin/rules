@@ -21,6 +21,9 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+      ##########################################
+      # 🔵 Step 1: 下载上游 Surge `.list` 规则
+      ##########################################
       - name: Download latest rules
         run: |
           mkdir -p rules
@@ -55,11 +58,100 @@ jobs:
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Proxy/Proxy_All_No_Resolve.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/ChinaMax/ChinaMax_All.list
 
+
+      ###########################################################
+      # 🟣 Step 2: 将 Surge `.list` 自动转换为 sing-box JSON
+      ###########################################################
+      - name: Convert Surge list to sing-box JSON (Advanced Version)
+        run: |
+          echo "🔄 Converting Surge .list to sing-box JSON ..."
+
+          mkdir -p singbox_rules
+
+          for file in rules/*.list; do
+            filename=$(basename "$file" .list)
+            outfile="singbox_rules/${filename}.json"
+
+            echo "⚙️ Processing $filename.list → $filename.json"
+
+            echo '{"version":1,"rules":[' > "$outfile"
+
+            first=1
+
+            while IFS= read -r line; do
+              # 跳过注释/空行
+              [[ "$line" =~ ^# ]] && continue
+              [[ -z "$line" ]] && continue
+
+              parts=$(echo "$line" | sed 's/  */ /g')
+
+              for item in $parts; do
+                [[ "$item" =~ ^# ]] && continue
+                [[ -z "$item" ]] && continue
+
+                type=$(echo "$item" | cut -d',' -f1)
+                value=$(echo "$item" | cut -d',' -f2)
+
+                json=""
+
+                case "$type" in
+                  DOMAIN) json="{\"domain\":\"$value\"}" ;;
+                  DOMAIN-SUFFIX) json="{\"domain_suffix\":\"$value\"}" ;;
+                  DOMAIN-KEYWORD) json="{\"domain_keyword\":\"$value\"}" ;;
+                  IP-CIDR|IP-CIDR6) json="{\"ip_cidr\":\"$value\"}" ;;
+                  IP-ASN) json="{\"ip_asn\":$value}" ;;
+                  PROCESS-NAME) json="{\"process_name\":\"$value\"}" ;;
+                  USER-AGENT) json="{\"user_agent\":\"$value\"}" ;;
+                  OR)
+                    expr=$(echo "$line" | sed 's/^OR,(//' | sed 's/)$//')
+                    IFS=',' read -ra orItems <<< "$expr"
+                    for o in "${orItems[@]}"; do
+                      t=$(echo "$o" | cut -d',' -f1)
+                      v=$(echo "$o" | cut -d',' -f2)
+                      case "$t" in
+                        IP-ASN) json="{\"ip_asn\":$v}" ;;
+                        IP-CIDR) json="{\"ip_cidr\":\"$v\"}" ;;
+                      esac
+
+                      if [ -n "$json" ]; then
+                        if [ $first -eq 1 ]; then
+                          echo "$json" >> "$outfile"
+                          first=0
+                        else
+                          echo ",$json" >> "$outfile"
+                        fi
+                      fi
+                    done
+                    continue
+                    ;;
+                  *) continue ;;
+                esac
+
+                if [ -n "$json" ]; then
+                  if [ $first -eq 1 ]; then
+                    echo "$json" >> "$outfile"
+                    first=0
+                  else
+                    echo ",$json" >> "$outfile"
+                  fi
+                fi
+
+              done
+            done < "$file"
+
+            echo ']}' >> "$outfile"
+          done
+
+          echo "🎉 Conversion complete → singbox_rules/"
+
+
+      ###########################################################
+      # 🔶 Step 3: 变更检测（包含 rules/ 和 singbox_rules/）
+      ###########################################################
       - name: Detect changes
         id: changes
         run: |
-          # 生成当前版本文件的 hash，用于检测变化
-          find rules -type f -exec sha256sum {} \; | sort > current_hash.txt
+          find rules singbox_rules -type f -exec sha256sum {} \; | sort > current_hash.txt
           if [ -f previous_hash.txt ]; then
             if diff -q previous_hash.txt current_hash.txt > /dev/null; then
               echo "changed=false" >> $GITHUB_OUTPUT
@@ -69,6 +161,9 @@ jobs:
           fi
           echo "changed=true" >> $GITHUB_OUTPUT
 
+      ###################################################
+      # 🟢 Step 4: 若有变化则 commit + push
+      ###################################################
       - name: Commit and push if changed
         if: steps.changes.outputs.changed == 'true'
         run: |
