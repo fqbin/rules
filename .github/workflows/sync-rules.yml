@@ -2,11 +2,11 @@ name: Sync Rules
 
 on:
   schedule:
-    - cron: '0 18 * * *'  # 每天 18:00 UTC 运行 == 中国时间每天 02:00
+    - cron: '0 18 * * *'
   workflow_dispatch:
 
 permissions:
-  contents: write   # 允许 GitHub Actions 推送修改到仓库
+  contents: write
 
 jobs:
   sync:
@@ -22,7 +22,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       ##########################################
-      # 🔵 Step 1: 下载上游 Surge `.list` 规则
+      # Step 1: 下载上游 Surge `.list` 规则
       ##########################################
       - name: Download latest rules
         run: |
@@ -59,13 +59,13 @@ jobs:
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Proxy/Proxy_All_No_Resolve.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/ChinaMax/ChinaMax_All.list
 
-
-      ###########################################################
-      # 🟣 Step 2: 将 Surge `.list` 自动转换为 sing-box JSON
-      ###########################################################
-      - name: Convert Surge list to sing-box JSON (Advanced Version)
+      ###################################################################
+      # Step 2: 将 Surge `.list` 转换为 sing-box v2 规则
+      # 删除 user-agent / process-name / ip-asn / OR
+      ###################################################################
+      - name: Convert Surge .list to sing-box v2 JSON
         run: |
-          echo "🔄 Converting Surge .list to sing-box JSON ..."
+          echo "🔄 Converting rules to sing-box v2 JSON ..."
 
           mkdir -p singbox_rules
 
@@ -73,102 +73,104 @@ jobs:
             filename=$(basename "$file" .list)
             outfile="singbox_rules/${filename}.json"
 
-            echo "⚙️ Processing $filename.list → $filename.json"
+            echo "⚙ Processing $filename.list"
 
-            echo '{"version":1,"rules":[' > "$outfile"
-
-            first=1
+            domain_list=()
+            domain_suffix_list=()
+            domain_keyword_list=()
+            ip_cidr_list=()
 
             while IFS= read -r line; do
-              # 跳过注释/空行
               [[ "$line" =~ ^# ]] && continue
               [[ -z "$line" ]] && continue
 
-              parts=$(echo "$line" | sed 's/  */ /g')
+              type=$(echo "$line" | cut -d',' -f1 | xargs)
+              value=$(echo "$line" | cut -d',' -f2 | xargs)
 
-              for item in $parts; do
-                [[ "$item" =~ ^# ]] && continue
-                [[ -z "$item" ]] && continue
+              case "$type" in
+                DOMAIN)
+                  domain_list+=("\"$value\"")
+                  ;;
+                DOMAIN-SUFFIX)
+                  domain_suffix_list+=("\"$value\"")
+                  ;;
+                DOMAIN-KEYWORD)
+                  domain_keyword_list+=("\"$value\"")
+                  ;;
+                IP-CIDR|IP-CIDR6)
+                  ip_cidr_list+=("\"$value\"")
+                  ;;
+                *)
+                  # 删除不支持的规则:
+                  # PROCESS-NAME / USER-AGENT / IP-ASN / OR / 其他
+                  continue
+                  ;;
+              esac
 
-                type=$(echo "$item" | cut -d',' -f1)
-                value=$(echo "$item" | cut -d',' -f2)
-
-                json=""
-
-                case "$type" in
-                  DOMAIN) json="{\"domain\":\"$value\"}" ;;
-                  DOMAIN-SUFFIX) json="{\"domain_suffix\":\"$value\"}" ;;
-                  DOMAIN-KEYWORD) json="{\"domain_keyword\":\"$value\"}" ;;
-                  IP-CIDR|IP-CIDR6) json="{\"ip_cidr\":\"$value\"}" ;;
-                  IP-ASN) json="{\"ip_asn\":$value}" ;;
-                  PROCESS-NAME) json="{\"process_name\":\"$value\"}" ;;
-                  USER-AGENT) json="{\"user_agent\":\"$value\"}" ;;
-                  OR)
-                    expr=$(echo "$line" | sed 's/^OR,(//' | sed 's/)$//')
-                    IFS=',' read -ra orItems <<< "$expr"
-                    for o in "${orItems[@]}"; do
-                      t=$(echo "$o" | cut -d',' -f1)
-                      v=$(echo "$o" | cut -d',' -f2)
-                      case "$t" in
-                        IP-ASN) json="{\"ip_asn\":$v}" ;;
-                        IP-CIDR) json="{\"ip_cidr\":\"$v\"}" ;;
-                      esac
-
-                      if [ -n "$json" ]; then
-                        if [ $first -eq 1 ]; then
-                          echo "$json" >> "$outfile"
-                          first=0
-                        else
-                          echo ",$json" >> "$outfile"
-                        fi
-                      fi
-                    done
-                    continue
-                    ;;
-                  *) continue ;;
-                esac
-
-                if [ -n "$json" ]; then
-                  if [ $first -eq 1 ]; then
-                    echo "$json" >> "$outfile"
-                    first=0
-                  else
-                    echo ",$json" >> "$outfile"
-                  fi
-                fi
-
-              done
             done < "$file"
 
-            echo ']}' >> "$outfile"
+            {
+              echo '{'
+              echo '  "version": 2,'
+              echo '  "rules": ['
+
+              first=true
+
+              if [ ${#domain_list[@]} -gt 0 ]; then
+                $first || echo ','
+                echo '    { "domain": ['$(IFS=,; echo "${domain_list[*]}")'] }'
+                first=false
+              fi
+
+              if [ ${#domain_suffix_list[@]} -gt 0 ]; then
+                $first || echo ','
+                echo '    { "domain_suffix": ['$(IFS=,; echo "${domain_suffix_list[*]}")'] }'
+                first=false
+              fi
+
+              if [ ${#domain_keyword_list[@]} -gt 0 ]; then
+                $first || echo ','
+                echo '    { "domain_keyword": ['$(IFS=,; echo "${domain_keyword_list[*]}")'] }'
+                first=false
+              fi
+
+              if [ ${#ip_cidr_list[@]} -gt 0 ]; then
+                $first || echo ','
+                echo '    { "ip_cidr": ['$(IFS=,; echo "${ip_cidr_list[*]}")'] }'
+              fi
+
+              echo '  ]'
+              echo '}'
+            } > "$outfile"
+
           done
 
-          echo "🎉 Conversion complete → singbox_rules/"
-
+          echo "🎉 Completed conversion → singbox_rules/"
 
       ###########################################################
-      # 🔶 Step 3: 变更检测（包含 rules/ 和 singbox_rules/）
+      # Step 3: 检查变更
       ###########################################################
       - name: Detect changes
         id: changes
         run: |
           find rules singbox_rules -type f -exec sha256sum {} \; | sort > current_hash.txt
+
           if [ -f previous_hash.txt ]; then
             if diff -q previous_hash.txt current_hash.txt > /dev/null; then
               echo "changed=false" >> $GITHUB_OUTPUT
-              echo "✅ No changes detected, skip commit."
               exit 0
             fi
           fi
+
           echo "changed=true" >> $GITHUB_OUTPUT
 
       ###################################################
-      # 🟢 Step 4: 若有变化则 commit + push
+      # Step 4: 若有变化则提交
       ###################################################
       - name: Commit and push if changed
         if: steps.changes.outputs.changed == 'true'
         run: |
           mv current_hash.txt previous_hash.txt
           git add .
-          git commit -m "Auto update rules $(date '+%Y-%m-%d %H:%M:%S %Z')"
+          git commit -m "Auto update & convert rules $(date '+%Y-%m-%d %H:%M:%S %Z')"
           git push
