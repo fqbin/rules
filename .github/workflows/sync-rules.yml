@@ -22,32 +22,24 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       ##########################################
-      # Step 1: 下载上游 Surge `.list` 规则
+      # Step 1: 下载 Surge `.list` 规则
       ##########################################
       - name: Download latest rules
         run: |
           mkdir -p rules
           cd rules
-          echo "🌀 Fetching rules..."
+          echo "Downloading rule lists..."
 
-          # 广告拦截
           curl -sS -O https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Surge-RULE-SET.list
-          # 智能助理
           curl -sS -O https://raw.githubusercontent.com/EAlyce/conf/refs/heads/main/Rule/OpenAI.list
-          # 苹果服务
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Apple/Apple_All_No_Resolve.list
-          # GitHub
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/GitHub/GitHub.list
-          # 微软服务
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Microsoft/Microsoft.list
-          # Telegram
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Telegram/Telegram.list
-          # 游戏平台
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Epic/Epic.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Sony/Sony.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Steam/Steam.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Nintendo/Nintendo.list
-          # 流媒体
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Loon/Spotify/Spotify.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/YouTube/YouTube.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Netflix/Netflix.list
@@ -55,17 +47,15 @@ jobs:
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/BiliBili/BiliBili.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/ChinaMedia/ChinaMedia.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/GlobalMedia/GlobalMedia_All_No_Resolve.list
-          # Proxy 与 China
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Proxy/Proxy_All_No_Resolve.list
           curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/ChinaMax/ChinaMax_All.list
 
       ###################################################################
-      # Step 2: 将 Surge `.list` 转换为 sing-box v2 规则
-      # 删除 user-agent / process-name / ip-asn / OR
+      # Step 2: 转换为 sing-box 旧格式 JSON（适配 1.13-alpha）
       ###################################################################
-      - name: Convert Surge .list to sing-box v2 JSON
+      - name: Convert .list to legacy sing-box JSON
         run: |
-          echo "🔄 Converting rules to sing-box v2 JSON ..."
+          echo "Converting rules (legacy format)..."
 
           mkdir -p singbox_rules
 
@@ -73,7 +63,7 @@ jobs:
             filename=$(basename "$file" .list)
             outfile="singbox_rules/${filename}.json"
 
-            echo "⚙ Processing $filename.list"
+            echo "Processing $filename.list"
 
             domain_list=()
             domain_suffix_list=()
@@ -101,17 +91,13 @@ jobs:
                   ip_cidr_list+=("\"$value\"")
                   ;;
                 *)
-                  # 删除不支持的规则:
-                  # PROCESS-NAME / USER-AGENT / IP-ASN / OR / 其他
                   continue
                   ;;
               esac
-
             done < "$file"
 
             {
               echo '{'
-              echo '  "version": 2,'
               echo '  "rules": ['
 
               first=true
@@ -145,7 +131,7 @@ jobs:
 
           done
 
-          echo "🎉 Completed conversion → singbox_rules/"
+          echo "Done -> singbox_rules/"
 
       ###########################################################
       # Step 3: 检查变更
