@@ -1,47 +1,12 @@
-{"version":1,"rules":[
-{"domain":"api.imem.app"}
-,{"domain":"api.swiftgram.app"}
-,{"domain_suffix":"cdn-telegram.org"}
-,{"domain_suffix":"comments.app"}
-,{"domain_suffix":"contest.com"}
-,{"domain_suffix":"graph.org"}
-,{"domain_suffix":"legra.ph"}
-,{"domain_suffix":"mbrx.app"}
-,{"domain_suffix":"quiz.directory"}
-,{"domain_suffix":"stel.com"}
-,{"domain_suffix":"t.me"}
-,{"domain_suffix":"tdesktop.com"}
-,{"domain_suffix":"telega.one"}
-,{"domain_suffix":"telegra.ph"}
-,{"domain_suffix":"telegram-cdn.org"}
-,{"domain_suffix":"telegram.dog"}
-,{"domain_suffix":"telegram.me"}
-,{"domain_suffix":"telegram.org"}
-,{"domain_suffix":"telegram.space"}
-,{"domain_suffix":"telegramdownload.com"}
-,{"domain_suffix":"telesco.pe"}
-,{"domain_suffix":"tg.dev"}
-,{"domain_suffix":"tx.me"}
-,{"domain_suffix":"usercontent.dev"}
-,{"domain_keyword":"nicegram"}
-,{"ip_cidr":"109.239.140.0/24"}
-,{"ip_cidr":"139.59.210.98/32"}
-,{"ip_cidr":"149.154.160.0/20"}
-,{"ip_cidr":"196.55.216.167/32"}
-,{"ip_cidr":"5.28.192.0/18"}
-,{"ip_cidr":"91.108.0.0/16"}
-,{"ip_cidr":"2001:67c:4e8::/48"}
-,{"ip_cidr":"2001:b28:f23c::/47"}
-,{"ip_cidr":"2001:b28:f23f::/48"}
-,{"ip_cidr":"2a0a:f280::/29"}
-,{"ip_asn":211157}
-,{"ip_asn":44907}
-,{"ip_asn":59930}
-,{"ip_asn":62014}
-,{"ip_asn":62041}
-,{"process_name":"nekox.messenger"}
-,{"process_name":"org.telegram.messenger"}
-,{"process_name":"telegram-desktop"}
-,{"process_name":"tw.nekomimi.nekogram"}
-,{"process_name":"xyz.nextalone.nagram"}
-]}
+{
+  "version": 2,
+  "rules": [
+    { "domain": ["api.imem.app","api.swiftgram.app"] }
+,
+    { "domain_suffix": ["cdn-telegram.org","comments.app","contest.com","graph.org","legra.ph","mbrx.app","quiz.directory","stel.com","t.me","tdesktop.com","telega.one","telegra.ph","telegram-cdn.org","telegram.dog","telegram.me","telegram.org","telegram.space","telegramdownload.com","telesco.pe","tg.dev","tx.me","usercontent.dev"] }
+,
+    { "domain_keyword": ["nicegram"] }
+,
+    { "ip_cidr": ["109.239.140.0/24","139.59.210.98/32","149.154.160.0/20","196.55.216.167/32","5.28.192.0/18","91.108.0.0/16","2001:67c:4e8::/48","2001:b28:f23c::/47","2001:b28:f23f::/48","2a0a:f280::/29"] }
+  ]
+}
