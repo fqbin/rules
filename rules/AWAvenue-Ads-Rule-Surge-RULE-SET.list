@@ -1,9 +1,9 @@
 #Title: AWAvenue Ads Rule
 #--------------------------------------
-#Total lines: 904
+#Total lines: 899
 #Version: 1.6.9-release
-#Update time: 2025-11-30 15:03:32 UTC+8
-#Update content: 新增 AdSet神蓍、小寻广告、掌阅log、银联广告、B612咔叽广告、更多的网易云广告、360生活广告、UC日志收集、巨量数据采集、更多的快手广告拦截。
+#Update time: 2025-12-15 14:46:15 UTC+8
+#Update content: fix umeng error #185 close
 
 #Homepage: https://github.com/TG-Twilight/AWAvenue-Ads-Rule
 #License: https://github.com/TG-Twilight/AWAvenue-Ads-Rule/blob/main/LICENSE
@@ -331,7 +331,6 @@ DOMAIN,dc.sigmob.cn
 DOMAIN,de.tynt.com
 DOMAIN,diagnosis.ad.xiaomi.com
 DOMAIN,dig.bdurl.net
-DOMAIN,dl.zuimeitianqi.com
 DOMAIN,dlogs.bwton.com
 DOMAIN,dm.toutiao.com
 DOMAIN,domain.aishengji.com
@@ -351,8 +350,6 @@ DOMAIN,edge.ads.twitch.tv
 DOMAIN,ef-dongfeng.tanx.com
 DOMAIN,engine.dcad01.com
 DOMAIN,entry.baidu.com
-DOMAIN,errlog.umeng.com
-DOMAIN,errnewlog.umeng.com
 DOMAIN,et-eus.w.inmobi.com
 DOMAIN,event.tradplusad.com
 DOMAIN,events-drcn.op.dbankcloud.cn
@@ -365,7 +362,6 @@ DOMAIN,file.daihuo.qq.com
 DOMAIN,firebaselogging-pa.googleapis.com
 DOMAIN,flurry.com
 DOMAIN,frontend-perf-service.e.kuaishou.com
-DOMAIN,fundingchoicesmessages.google.com
 DOMAIN,fxgate.baidu.com
 DOMAIN,g-adnet.hiaiabc.com
 DOMAIN,g-staic.ganjingworld.com
@@ -377,7 +373,6 @@ DOMAIN,gdfp.gifshow.com
 DOMAIN,gemini.yahoo.com
 DOMAIN,geo.yahoo.com
 DOMAIN,getui.cn
-DOMAIN,getui.com
 DOMAIN,ggx.cmvideo.cn
 DOMAIN,ggx01.miguvideo.com
 DOMAIN,ggx03.miguvideo.com
@@ -664,7 +659,6 @@ DOMAIN,s1.cdn-sg.advlion.com
 DOMAIN,s8t.teads.tv
 DOMAIN,saad.ms.zhangyue.net
 DOMAIN,saas.hpplay.cn
-DOMAIN,safebrowsing.googleapis.com
 DOMAIN,safebrowsing.urlsec.gg.com
 DOMAIN,samsung-com.112.2o7.net
 DOMAIN,samsungads.com
@@ -732,6 +726,7 @@ DOMAIN,success.ctobsnssdk.com
 DOMAIN,supply.inmobicdn.net
 DOMAIN,sv-video.play.aiseet.atianqi.com
 DOMAIN,syh-imp.cdnjtzy.com
+DOMAIN,syh.zybang.com
 DOMAIN,szbdyd.com
 DOMAIN,t-dsp.pinduoduo.com
 DOMAIN,t.applovin.com
