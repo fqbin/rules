@@ -2,11 +2,11 @@ name: Sync Rules
 
 on:
   schedule:
-    - cron: '0 18 * * *'
+    - cron: '0 18 * * *'  # 每天 18:00 UTC 运行 == 中国时间每天 02:00
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write   # 允许 GitHub Actions 推送修改到仓库
 
 jobs:
   sync:
@@ -21,96 +21,58 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Download Surge rule lists
+      - name: Download latest rules
         run: |
           mkdir -p rules
           cd rules
-          echo "Downloading .list rule files..."
+          echo "🌀 Fetching rules..."
 
-          URLS=(
-            "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Netflix/Netflix.list"
-            "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Disney/Disney.list"
-            "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/GlobalMedia/GlobalMedia_All_No_Resolve.list"
-            "https://raw.githubusercontent.com/EAlyce/conf/refs/heads/main/Rule/OpenAI.list"
-          )
+          # 广告拦截
+          curl -sS -O https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Surge-RULE-SET.list
+          # 智能助理
+          curl -sS -O https://raw.githubusercontent.com/EAlyce/conf/refs/heads/main/Rule/OpenAI.list
+          # 苹果服务
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Apple/Apple_All_No_Resolve.list
+          # GitHub
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/GitHub/GitHub.list
+          # 微软服务
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Microsoft/Microsoft.list
+          # Telegram
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Telegram/Telegram.list
+          # 游戏平台
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Epic/Epic.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Sony/Sony.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Steam/Steam.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Nintendo/Nintendo.list
+          # 流媒体
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/YouTube/YouTube.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Netflix/Netflix.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Disney/Disney.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/BiliBili/BiliBili.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/ChinaMedia/ChinaMedia.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/GlobalMedia/GlobalMedia_All_No_Resolve.list
+          # Proxy 与 China
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Proxy/Proxy_All_No_Resolve.list
+          curl -sS -O https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/ChinaMax/ChinaMax_All.list
 
-          for u in "${URLS[@]}"; do
-            echo "Download $u"
-            curl -fsS -O "$u"
-          done
-
-      - name: Convert to Sing-Box rule-set JSON (legacy)
+      - name: Detect changes
+        id: changes
         run: |
-          mkdir -p singbox_rules
-
-          for file in rules/*.list; do
-            name=$(basename "$file" .list)
-            out="singbox_rules/${name}.json"
-
-            echo "Processing $file -> $out"
-
-            DOMAIN=""
-            DOMAIN_SUFFIX=""
-            DOMAIN_KEYWORD=""
-            IP_CIDR=""
-
-            while IFS= read -r line; do
-              # Remove comments and empty lines
-              [[ "$line" =~ ^# ]] && continue
-              [[ -z "$line" ]] && continue
-
-              IFS=',' read -r type value _ <<< "$line"
-
-              case "$type" in
-                DOMAIN)
-                  DOMAIN="$DOMAIN\"$value\","
-                  ;;
-                DOMAIN-SUFFIX)
-                  DOMAIN_SUFFIX="$DOMAIN_SUFFIX\"$value\","
-                  ;;
-                DOMAIN-KEYWORD)
-                  DOMAIN_KEYWORD="$DOMAIN_KEYWORD\"$value\","
-                  ;;
-                IP-CIDR|IP-CIDR6)
-                  IP_CIDR="$IP_CIDR\"$value\","
-                  ;;
-              esac
-            done < "$file"
-
-            # Start JSON
-            echo '{' > "$out"
-            echo '  "rules": [' >> "$out"
-
-            SEP=""
-
-            if [[ -n "$DOMAIN" ]]; then
-              echo "    { \"domain\": [${DOMAIN%,}] }" >> "$out"
-              SEP=","
+          # 生成当前版本文件的 hash，用于检测变化
+          find rules -type f -exec sha256sum {} \; | sort > current_hash.txt
+          if [ -f previous_hash.txt ]; then
+            if diff -q previous_hash.txt current_hash.txt > /dev/null; then
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "✅ No changes detected, skip commit."
+              exit 0
             fi
+          fi
+          echo "changed=true" >> $GITHUB_OUTPUT
 
-            if [[ -n "$DOMAIN_SUFFIX" ]]; then
-              [[ -n "$SEP" ]] && echo "    $SEP" >> "$out"
-              echo "    { \"domain_suffix\": [${DOMAIN_SUFFIX%,}] }" >> "$out"
-              SEP=","
-            fi
-
-            if [[ -n "$DOMAIN_KEYWORD" ]]; then
-              [[ -n "$SEP" ]] && echo "    $SEP" >> "$out"
-              echo "    { \"domain_keyword\": [${DOMAIN_KEYWORD%,}] }" >> "$out"
-              SEP=","
-            fi
-
-            if [[ -n "$IP_CIDR" ]]; then
-              [[ -n "$SEP" ]] && echo "    $SEP" >> "$out"
-              echo "    { \"ip_cidr\": [${IP_CIDR%,}] }" >> "$out"
-            fi
-
-            echo '  ]' >> "$out"
-            echo '}' >> "$out"
-          done
-
-      - name: Commit changes
+      - name: Commit and push if changed
+        if: steps.changes.outputs.changed == 'true'
         run: |
+          mv current_hash.txt previous_hash.txt
           git add .
-          git commit -m "Auto update sing-box rules $(date '+%Y-%m-%d %H:%M:%S')" || exit 0
+          git commit -m "Auto update rules $(date '+%Y-%m-%d %H:%M:%S %Z')"
           git push
